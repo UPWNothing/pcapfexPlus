@@ -8,7 +8,7 @@ from Files.FileObject import *
 from Streams.StreamBuilder import *
 from Plugins.PluginManager import *
 
-DEBUG = False
+DEBUG = True
 
 class Dispatcher:
     def __init__(self, pcapfile, outputdir='output', entropy=False, **kwargs):

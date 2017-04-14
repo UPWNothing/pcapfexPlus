@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-__author__ = 'Viktor Winkelmann'
+__author__ = 'Richard Chen'
 
 import sys
 sys.path.append('../..')
@@ -44,7 +44,7 @@ class HTTP11(ProtocolDissector):
 
     @classmethod
     def getResponsePayload(cls, data):
-        payload = None
+        payload = '' 
         encoding = None
         headers = cls.parseHeaders(data)
         if 'Content-Length' in headers:
@@ -58,6 +58,13 @@ class HTTP11(ProtocolDissector):
         if 'Transfer-Encoding' in headers:
             encoding = headers['Transfer-Encoding']
             encoding = encoding.split(':')[-1].strip().lower()
+            if 'chunked' in encoding:
+                # Decode chunked data
+                length = 1
+                while length: 
+                    length = int(data.readline().split(' ')[0],16)
+                    payload += data.read(length)
+                    assert data.read(2)=='\r\n'
 
         return cls.decode(payload, encoding)
 
@@ -67,7 +74,10 @@ class HTTP11(ProtocolDissector):
         line = data.readline()
         while line not in ['\r\n','']:
             keyval = line.split(':')
-            headers[keyval[0].strip()] = keyval[1].strip()
+            try:
+                headers[keyval[0].strip()] = keyval[1].strip()
+            except:
+                sys.exit()
             line = data.readline()
         return headers
 
