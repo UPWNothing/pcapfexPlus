@@ -39,7 +39,7 @@ class FileManager(Thread):
                 continue
 
             #path = "%s/%ss/%s_%s/%s/" % (self.outputdir, file.type, file.source, file.destination, file.timestamp)
-            path = "{}/FileCarve/{}-{}/{}/".format(self.outputdir,file.source,file.destination,file.type)
+            path = "{}/FileCarve/{}-{}/{}/{}/".format(self.outputdir,file.source,file.destination,file.portSrc,file.type)
             if not os.path.exists(path):
                 os.makedirs(path)
 

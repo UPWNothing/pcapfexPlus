@@ -76,6 +76,7 @@ class Dispatcher:
                     file = FileObject(packet['response']['payload'])
                     file.source = stream.ipSrc
                     file.destination = stream.ipDst
+                    file.portSrc = stream.portSrc
                     file.filename = packet['response']['filename']
                 if stream.tsFirstPacket:
                     file.timestamp = stream.tsFirstPacket
@@ -103,6 +104,7 @@ class Dispatcher:
                         file.source = stream.ipSrc
                         file.destination = stream.ipDst
                         file.fileEnding = self.pm.dataRecognizers[datarecognizer].fileEnding
+                        file.portSrc = stream.portSrc
                         file.type = self.pm.dataRecognizers[datarecognizer].dataCategory
                         if stream.tsFirstPacket:
                             file.timestamp = stream.tsFirstPacket
@@ -113,6 +115,7 @@ class Dispatcher:
                     file = FileObject(payload)
                     file.source = stream.ipSrc
                     file.destination = stream.ipDst
+                    file.portSrc = stream.portSrc
                     file.type = type
                     if stream.tsFirstPacket:
                         file.timestamp = stream.tsFirstPacket

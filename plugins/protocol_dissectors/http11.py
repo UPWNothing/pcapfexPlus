@@ -94,7 +94,6 @@ class HTTP11(ProtocolDissector):
 
             #loop to allow HTTP pipelining
             while line != '':
-                print "TEST: " + line
                 # classify as Request or Response
                 if line.startswith('HTTP'):
                     headers,payload = cls.getResponsePayload(data)
