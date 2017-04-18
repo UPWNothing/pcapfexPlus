@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-__author__ = 'Viktor Winkelmann'
+__author__ = 'Richard Chen'
 
 import sys
 sys.path.append('../..')
@@ -38,16 +38,20 @@ class FileManager(Thread):
                 self.files.task_done()
                 continue
 
-            path = "%s/%ss/%s_%s/%s/" % (self.outputdir, file.type, file.source, file.destination, file.timestamp)
+            #path = "%s/%ss/%s_%s/%s/" % (self.outputdir, file.type, file.source, file.destination, file.timestamp)
+            path = "{}/FileCarve/{}-{}/{}/".format(self.outputdir,file.source,file.destination,file.type)
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            number = 1
-            filename = '%s %d.%s' % (file.name, number, file.fileEnding)
+            number = 0
+            if file.filename:
+                filename = file.filename
+            else:
+                filename = '%s %d.%s' % (file.name, number, file.fileEnding)
 
             while os.path.exists(path + filename):
                 number += 1
-                filename = '%s %d.%s' % (file.name, number, file.fileEnding)
+                filename = '%s(%d).%s' % (file.name, number, file.fileEnding)
 
             filename = filename.rstrip('.')
             with open(path + filename, 'wb') as outfile:

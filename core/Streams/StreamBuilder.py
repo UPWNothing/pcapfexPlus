@@ -24,7 +24,7 @@ class StreamBuilder:
         self.tcpStreams = []
         self.udpStreams = []
         self.UDP_TIMEOUT = 120
-        self.VERIFY_CHECKSUMS = True   # Might need to be disabled if Checksum Offloading
+        self.VERIFY_CHECKSUMS = False # Might need to be disabled if Checksum Offloading
                                         # was used on the capturing NIC
 
         if 'udpTimeout' in kwargs:
@@ -88,16 +88,14 @@ class StreamBuilder:
 
                 ip = eth.data
 
-                if self.VERIFY_CHECKSUMS and not self.__verify_checksums(ip):
-                    continue
+                #if self.VERIFY_CHECKSUMS and not self.__verify_checksums(ip):
+                #    continue
 
                 packet = ip.data
                 if ip.p == dpkt.ip.IP_PROTO_TCP:
 
                     # get last matching stream occurrence for packet
-                    tcpStream = self.__findLastStreamOccurenceIn(openTcpStreams,
-                                                                 ip.src, packet.sport,
-                                                                 ip.dst, packet.dport)
+                    tcpStream,isReply = self.__findLastStreamOccurenceIn(openTcpStreams, ip.src, packet.sport, ip.dst, packet.dport)
 
                     # no matching open stream found, create new stream if syn flag is set
                     if tcpStream is None:
@@ -109,13 +107,14 @@ class StreamBuilder:
                         openTcpStreams.append(tcpStream)
 
                     # add packet to currently referenced stream
-                    tcpStream.addPacket(packet, ts)
+                    tcpStream.addPacket(packet, ts, isReply)
 
                     # check if stream needs to be closed due to fin flag and verify stream
                     if packet.flags & dpkt.tcp.TH_FIN:
                         if tcpStream.isValid():
                             tcpStream.closed = True
                             self.tcpStreams.append(tcpStream)
+                        
                         openTcpStreams.remove(tcpStream)
 
 
@@ -124,7 +123,7 @@ class StreamBuilder:
                         continue
 
                     #get last matching stream occurrence for packet
-                    udpStream = self.__findLastStreamOccurenceIn(openUdpStreams,
+                    udpStream,isReply = self.__findLastStreamOccurenceIn(openUdpStreams,
                                                              ip.src, packet.sport,
                                                              ip.dst, packet.dport)
 
@@ -164,8 +163,11 @@ class StreamBuilder:
             if stream.portSrc == portSrc \
                     and stream.portDst == portDst \
                     and stream.ipSrc == socket.inet_ntoa(ipSrc) \
-                    and stream.ipDst == socket.inet_ntoa(ipDst):
-
-                    return stream
-
-        return None
+                    and stream.ipDst == socket.inet_ntoa(ipDst) :
+                return (stream,False)
+            elif stream.portSrc == portDst \
+                    and stream.portDst == portSrc \
+                    and stream.ipSrc == socket.inet_ntoa(ipDst) \
+                    and stream.ipDst == socket.inet_ntoa(ipSrc) :
+                return (stream,True)
+        return None,None

@@ -7,6 +7,7 @@ from Files.FileManager import *
 from Files.FileObject import *
 from Streams.StreamBuilder import *
 from Plugins.PluginManager import *
+from time import time
 
 DEBUG = True
 
@@ -18,12 +19,15 @@ class Dispatcher:
         self.pm = PluginManager()
         self.outputdir = outputdir
         self.useEntropy = entropy
+        self.countfiles = 0
 
     def _finishedSearch(self, (stream, result)):
         Utils.printl("Found %d files in %s stream %s" % (len(result), stream.protocol, stream.infos))
+        self.countfiles += len(result)
         map(self.filemanager.addFile, result)
 
     def run(self):
+        self.outputdir += str(time())
         if os.path.exists(self.outputdir):
             print "Output folder \'%s\' already exists! Exiting..." % (self.outputdir,)
             self.filemanager.exit()
@@ -51,28 +55,47 @@ class Dispatcher:
 
         self.filemanager.exit()
         print "Evidence search has finished.\n"
-
+        print "{0} files found.".format(self.countfiles)
 
 
     def _findFiles(self, stream):
         files = []
-        payloads= []
+        packets= []
         streamdata = stream.getAllBytes()
         streamPorts = (stream.ipSrc, stream.ipDst)
 
         for protocol in self.pm.getProtocolsByHeuristics(streamPorts):
-            payloads = self.pm.protocolDissectors[protocol].parseData(streamdata)
-
-            if payloads is not None:
+            packets = self.pm.protocolDissectors[protocol].parseData(streamdata)
+            if packets is not None:
                 stream.protocol = self.pm.protocolDissectors[protocol].protocolName
                 break
 
-        for encPayload in payloads:
-            for decoder in self.pm.decoders:
-                payload = self.pm.decoders[decoder].decodeData(encPayload)
-                if payload is None:
+        for packet in packets:
+            if stream.protocol == 'HTTP 1.1':
+                if packet['response']['payload'] and packet['response']['filename']:
+                    file = FileObject(packet['response']['payload'])
+                    file.source = stream.ipSrc
+                    file.destination = stream.ipDst
+                    file.filename = packet['response']['filename']
+                if stream.tsFirstPacket:
+                    file.timestamp = stream.tsFirstPacket
+                files.append(file)
+                
+                if packet['request']['payload']:
+                    packet = packet['request']['payload']
+                else:
                     continue
 
+            if packet is None:
+                continue
+            # No payload in Request-Response pair
+            #if packet['response']['payload'] is None and packet['request']['payload'] is None:
+            #    continue
+            
+            for decoder in self.pm.decoders:
+                payload = self.pm.decoders[decoder].decodeData(packet)
+                if payload is None:
+                    continue
 
                 for datarecognizer in self.pm.dataRecognizers:
                     for occ in self.pm.dataRecognizers[datarecognizer].findAllOccurences(payload):

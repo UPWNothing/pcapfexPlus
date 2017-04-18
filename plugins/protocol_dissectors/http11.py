@@ -24,6 +24,7 @@ class HTTP11(ProtocolDissector):
     }
 
     protocolName = "HTTP 1.1"
+    packets = []
 
     @classmethod
     def getRequestPayload(cls, data):
@@ -66,7 +67,7 @@ class HTTP11(ProtocolDissector):
                     payload += data.read(length)
                     assert data.read(2)=='\r\n'
 
-        return cls.decode(payload, encoding)
+        return (headers,cls.decode(payload, encoding))
 
     @classmethod
     def parseHeaders(cls, data):
@@ -93,19 +94,32 @@ class HTTP11(ProtocolDissector):
 
             #loop to allow HTTP pipelining
             while line != '':
+                print "TEST: " + line
                 # classify as Request or Response
                 if line.startswith('HTTP'):
-                    payload = cls.getResponsePayload(data)
+                    headers,payload = cls.getResponsePayload(data)
+                    assert(len(cls.packets)>0)
+                    cls.packets[-1]['response']['headers'] = headers
+                    cls.packets[-1]['response']['payload'] = payload
                 else:
-                    payload = cls.getRequestPayload(data)
-
-                if payload:
-                    payloads.append(payload)
+                    packetinfo = {'request':{},'response':{}} 
+                    headers,payload = cls.getRequestPayload(data)
+                    packetinfo['request']['payload'] = payload
+                    packetinfo['request']['headers'] = headers
+                    packetinfo['response']['filename'] = cls.getFilename(line)
+                    cls.packets.append(packetinfo)
+                #if payload:
+                #    cls.packets.append(packetinfo)
 
                 line = data.readline()
-            return payloads
+            return cls.packets
 
-
+    @classmethod
+    def getFilename(cls,line):
+        # Get Filename in HTTP Request
+        filename = line.split(' ')[1]
+        filename = filename.split('?')[0].split('/')[-1]
+        return filename
 
 
 
