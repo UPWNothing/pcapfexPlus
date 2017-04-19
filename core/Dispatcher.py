@@ -79,8 +79,6 @@ class Dispatcher:
                     file.destination = stream.ipDst
                     file.portSrc = stream.portSrc
                     file.filename = packet['response']['filename']
-                    if file.portSrc == 59986:
-                        print len(packets)
                     if stream.tsFirstPacket:
                         file.timestamp = stream.tsFirstPacket
                     files.append(file)
