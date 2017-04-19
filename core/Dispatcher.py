@@ -8,6 +8,7 @@ from Files.FileObject import *
 from Streams.StreamBuilder import *
 from Plugins.PluginManager import *
 from time import time
+from Scanners import *
 
 DEBUG = True
 
@@ -20,6 +21,7 @@ class Dispatcher:
         self.outputdir = outputdir
         self.useEntropy = entropy
         self.countfiles = 0
+        self.emailscan = EmailScan.EmailScan(outputdir)
 
     def _finishedSearch(self, (stream, result)):
         Utils.printl("Found %d files in %s stream %s" % (len(result), stream.protocol, stream.infos))
@@ -54,6 +56,7 @@ class Dispatcher:
 
 
         self.filemanager.exit()
+        self.emailscan.output_result()
         print "Evidence search has finished.\n"
         print "{0} files found.".format(self.countfiles)
 
@@ -63,6 +66,8 @@ class Dispatcher:
         packets= []
         streamdata = stream.getAllBytes()
         streamPorts = (stream.ipSrc, stream.ipDst)
+        
+        self.emailscan.scan_emails(streamdata)
 
         for protocol in self.pm.getProtocolsByHeuristics(streamPorts):
             packets = self.pm.protocolDissectors[protocol].parseData(streamdata)
