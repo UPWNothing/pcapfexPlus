@@ -75,12 +75,15 @@ class Dispatcher:
                 if packet['response']['payload'] and packet['response']['filename']:
                     file = FileObject(packet['response']['payload'])
                     file.source = stream.ipSrc
+                    file.type = packet['response']['headers']['Content-Type'].split(';')[0]
                     file.destination = stream.ipDst
                     file.portSrc = stream.portSrc
                     file.filename = packet['response']['filename']
-                if stream.tsFirstPacket:
-                    file.timestamp = stream.tsFirstPacket
-                files.append(file)
+                    if file.portSrc == 59986:
+                        print len(packets)
+                    if stream.tsFirstPacket:
+                        file.timestamp = stream.tsFirstPacket
+                    files.append(file)
                 
                 if packet['request']['payload']:
                     packet = packet['request']['payload']

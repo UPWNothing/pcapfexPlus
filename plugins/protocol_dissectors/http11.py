@@ -24,7 +24,6 @@ class HTTP11(ProtocolDissector):
     }
 
     protocolName = "HTTP 1.1"
-    packets = []
 
     @classmethod
     def getRequestPayload(cls, data):
@@ -63,10 +62,10 @@ class HTTP11(ProtocolDissector):
                 # Decode chunked data
                 length = 1
                 while length: 
-                    length = int(data.readline().split(' ')[0],16)
+                    length = int(data.readline()[:-2],16)
                     payload += data.read(length)
-                    assert data.read(2)=='\r\n'
-
+                    lineend = data.read(2)
+                    assert lineend == "\r\n"
         return (headers,cls.decode(payload, encoding))
 
     @classmethod
@@ -90,28 +89,33 @@ class HTTP11(ProtocolDissector):
             if 'HTTP/1.1' not in line:
                 return None
 
-            payloads = []
+            packets = []
 
             #loop to allow HTTP pipelining
             while line != '':
                 # classify as Request or Response
                 if line.startswith('HTTP'):
                     headers,payload = cls.getResponsePayload(data)
-                    assert(len(cls.packets)>0)
-                    cls.packets[-1]['response']['headers'] = headers
-                    cls.packets[-1]['response']['payload'] = payload
+                    assert(len(packets)>0)
+                    packets[-1]['response']['headers'] = headers
+                    packets[-1]['response']['payload'] = payload
                 else:
                     packetinfo = {'request':{},'response':{}} 
                     headers,payload = cls.getRequestPayload(data)
                     packetinfo['request']['payload'] = payload
                     packetinfo['request']['headers'] = headers
-                    packetinfo['response']['filename'] = cls.getFilename(line)
-                    cls.packets.append(packetinfo)
+                    try:
+                        packetinfo['response']['filename'] = cls.getFilename(line)
+                    except:
+                        packetinfo['response']['filename'] = 'Untitled File'
+                    packetinfo['response']['headers'] = None
+                    packetinfo['response']['payload'] = None
+                    packets.append(packetinfo)
                 #if payload:
                 #    cls.packets.append(packetinfo)
 
                 line = data.readline()
-            return cls.packets
+            return packets
 
     @classmethod
     def getFilename(cls,line):

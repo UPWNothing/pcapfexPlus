@@ -23,6 +23,7 @@ class TCPStream(PacketStream):
         if len(packet.data) == 0:
             return
 
+
         if not reply:
             if packet.seq not in self.packets or len(self.packets[packet.seq].data) < len(packet.data):
                 self.packets[packet.seq] = packet
@@ -55,7 +56,9 @@ class TCPStream(PacketStream):
 
     def getAllBytes(self):
         with closing(StringIO()) as bytes:
-            for packet in self:
+            #self.printall(self.merge())
+            
+            for packet in self.merge():
                 bytes.write(packet.data)
 
             return bytes.getvalue()
@@ -110,24 +113,28 @@ class TCPStream(PacketStream):
         while i < len(sortedPackets) and j < len(sortedReplyPackets):
             if reply:
                 if sortedPackets[i].ack > sortedReplyPackets[j].seq:
-                    mergedPackets.append(sortedReplyPackets[j])
+                    if nextSeq(sortedReplyPackets[j-1])==sortedReplyPackets[j].seq:
+                        mergedPackets.append(sortedReplyPackets[j])
                     j+=1
                 else:
-                    mergedPackets.append(sortedPackets[i])
+                    if mergedPackets[-1].ack == sortedPackets[i].seq:
+                        mergedPackets.append(sortedPackets[i])
+                        reply = False
                     i+=1
-                    reply = False
             else:
                 if sortedReplyPackets[j].ack > sortedPackets[i].seq:
-                    mergedPackets.append(sortedPackets[i])
+                    if nextSeq(sortedPackets[i-1])==sortedPackets[i].seq:
+                        mergedPackets.append(sortedPackets[i])
                     i+=1
                 else:
-                    mergedPackets.append(sortedReplyPackets[j])
+                    if mergedPackets[-1].ack == sortedReplyPackets[j].seq:
+                        mergedPackets.append(sortedReplyPackets[j])
+                        reply = True
                     j+=1
-                    reply = True
-        for k in range(i,len(sortedPackets)):
-            mergedPackets.append(sortedPackets[k])
-        for k in range(j,len(sortedReplyPackets)):
-            mergedPackets.append(sortedReplyPackets[k])
+        #for k in range(i,len(sortedPackets)):
+        #    mergedPackets.append(sortedPackets[k])
+        #for k in range(j,len(sortedReplyPackets)):
+        #    mergedPackets.append(sortedReplyPackets[k])
         return mergedPackets
     
     # For Test
@@ -136,3 +143,6 @@ class TCPStream(PacketStream):
         for packet in packets:
             print "{} --> {} SEQ:{} ACK:{}".format(packet.sport,packet.dport,packet.seq,packet.ack)
             
+
+def nextSeq(packet):
+    return packet.seq + len(packet.data)
