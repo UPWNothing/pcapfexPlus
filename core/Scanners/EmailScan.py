@@ -6,10 +6,9 @@ class EmailScan:
                         "{|}-~]+)*(@|\sat\s)(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(\.|"
                         "\sdot\s))+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)"))
 
-    def __init__(self,outputdir):
+    def __init__(self):
         self.email_dic = {}
         self.email_list = []
-        self.outputdir = outputdir
 
     def scan_emails(self,s):
         """Add matched emails to email_dic"""
@@ -27,7 +26,9 @@ class EmailScan:
             outputdir = self.outputdir
         sorted_list = sorted(self.email_dic.items(), key=operator.itemgetter(1), reverse=True)
         with open(outputdir+'/email.txt',"w") as f:
+            f.write("{:<20}\tEmails:\n".format('Num:'))
+            f.write("="*20+"\t"+"="*20+'\n')
             for email,count in sorted_list:
-                f.write("{:<20}{}".format(count,email))
+                f.write("{:<20}\t{}\n".format(count,email))
         
                

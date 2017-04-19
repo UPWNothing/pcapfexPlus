@@ -21,7 +21,8 @@ class Dispatcher:
         self.outputdir = outputdir
         self.useEntropy = entropy
         self.countfiles = 0
-        self.emailscan = EmailScan.EmailScan(outputdir)
+        self.emailscan = EmailScan.EmailScan()
+        self.domainscan = DomainScan.DomainScan()
 
     def _finishedSearch(self, (stream, result)):
         Utils.printl("Found %d files in %s stream %s" % (len(result), stream.protocol, stream.infos))
@@ -29,12 +30,7 @@ class Dispatcher:
         map(self.filemanager.addFile, result)
 
     def run(self):
-        self.outputdir += str(time())
-        if os.path.exists(self.outputdir):
-            print "Output folder \'%s\' already exists! Exiting..." % (self.outputdir,)
-            self.filemanager.exit()
-            return
-
+        #self.outputdir += str(time())
 
         print "Reassembling streams..."
         streambuilder = StreamBuilder(self.pcapfile, **self.kwargs)
@@ -56,7 +52,8 @@ class Dispatcher:
 
 
         self.filemanager.exit()
-        self.emailscan.output_result()
+        self.emailscan.output_result(self.outputdir)
+        self.domainscan.output_result(self.outputdir)
         print "Evidence search has finished.\n"
         print "{0} files found.".format(self.countfiles)
 
@@ -77,6 +74,8 @@ class Dispatcher:
 
         for packet in packets:
             if stream.protocol == 'HTTP 1.1':
+                if 'Host' in packet['request']['headers'].keys():
+                    self.domainscan.add_domain(packet['request']['headers']['Host'])
                 if packet['response']['payload'] and packet['response']['filename']:
                     file = FileObject(packet['response']['payload'])
                     file.source = stream.ipSrc
